@@ -1,8 +1,8 @@
 use axum::routing::get;
 use rmpv::Value;
 use socketioxide::{
-    extract::{AckSender, Data, SocketRef},
-    SocketIo,
+    extract::{Data, SocketRef},
+    SocketIo, SocketIoBuilder,
 };
 use tracing::info;
 use tracing_subscriber::FmtSubscriber;
@@ -12,22 +12,13 @@ mod user;
 fn on_connect(socket: SocketRef, Data(data): Data<Value>) {
     info!(ns = socket.ns(), ?socket.id, "Socket.IO connected");
     socket.emit("auth", &data).ok();
-
-    socket.on("message", |socket: SocketRef, Data::<Value>(data)| {
-        info!(?data, "Received event:");
-        socket.emit("message-back", &data).ok();
-    });
-
-    socket.on("message-with-ack", |Data::<Value>(data), ack: AckSender| {
-        info!(?data, "Received event");
-        ack.send(&data).ok();
-    });
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::subscriber::set_global_default(FmtSubscriber::default())?;
 
+    // let (layer, io) = SocketIoBuilder::new().with_state();
     let (layer, io) = SocketIo::new_layer();
 
     io.ns("/", on_connect);
