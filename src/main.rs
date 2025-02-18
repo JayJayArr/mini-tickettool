@@ -6,6 +6,8 @@ use socketioxide::{
 };
 use tracing::info;
 use tracing_subscriber::FmtSubscriber;
+mod ticket;
+mod user;
 
 fn on_connect(socket: SocketRef, Data(data): Data<Value>) {
     info!(ns = socket.ns(), ?socket.id, "Socket.IO connected");
