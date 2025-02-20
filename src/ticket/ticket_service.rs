@@ -4,34 +4,34 @@ use tokio::sync::{Mutex, RwLock};
 
 use super::{
     model::{CreateTicket, Ticket, TicketId},
-    status::{self, TicketStatus},
+    status::TicketStatus,
 };
 
 trait TicketService {
     async fn get_tickets(&self) -> Vec<Ticket>;
-    async fn get_ticket_by_id(&self, ticket_id: &TicketId) -> &Ticket;
-    async fn getmut_ticket_by_id(&mut self, ticket_id: &TicketId) -> &mut Ticket;
+    async fn get_ticket_by_id(&self, ticket_id: &TicketId) -> Option<&Ticket>;
+    async fn getmut_ticket_by_id(&mut self, ticket_id: &TicketId) -> Option<&mut Ticket>;
     async fn create_ticket(&mut self, create_ticket: CreateTicket) -> Ticket;
-    async fn delete_ticket(&self, ticket_id: &TicketId) -> Ticket;
+    async fn delete_ticket(&mut self, ticket_id: &TicketId) -> Option<Ticket>;
 }
 
-pub struct InMemTicketService {
-    hashmap: Arc<Mutex<HashMap<TicketId, Ticket>>>,
+pub struct InMemTicketRepository {
+    tickets: HashMap<TicketId, Ticket>,
     counter: u32,
 }
 
-impl InMemTicketService {
+impl InMemTicketRepository {
     fn new() -> Self {
         Self {
-            hashmap: Arc::new(Mutex::new(HashMap::new())),
+            tickets: HashMap::new(),
             counter: 0,
         }
     }
 }
 
-impl TicketService for InMemTicketService {
+impl TicketService for InMemTicketRepository {
     async fn get_tickets(&self) -> Vec<Ticket> {
-        self.hashmap.lock().await.values().cloned().collect()
+        self.tickets.values().cloned().collect()
     }
     async fn create_ticket(&mut self, create_ticket: CreateTicket) -> Ticket {
         self.counter = self.counter + 1;
@@ -41,21 +41,15 @@ impl TicketService for InMemTicketService {
             description: create_ticket.description,
             status: TicketStatus::ToDo,
         };
-        self.hashmap
-            .lock()
-            .await
-            .insert(TicketId(self.counter), ticket)
-            .unwrap()
+        self.tickets.insert(TicketId(self.counter), ticket).unwrap()
     }
-    async fn get_ticket_by_id(&self, ticket_id: &TicketId) -> &Ticket {
-        // self.hashmap.read().await.get(ticket_id)
-        todo!()
+    async fn get_ticket_by_id(&self, ticket_id: &TicketId) -> Option<&Ticket> {
+        self.tickets.get(ticket_id)
     }
-    async fn getmut_ticket_by_id(&mut self, ticket_id: &TicketId) -> &mut Ticket {
-        // self.hashmap.lock().await.get_mut(ticket_id).unwrap()
-        todo!()
+    async fn getmut_ticket_by_id(&mut self, ticket_id: &TicketId) -> Option<&mut Ticket> {
+        self.tickets.get_mut(ticket_id)
     }
-    async fn delete_ticket(&self, ticket_id: &TicketId) -> Ticket {
-        self.hashmap.lock().await.remove(ticket_id).unwrap()
+    async fn delete_ticket(&mut self, ticket_id: &TicketId) -> Option<Ticket> {
+        self.tickets.remove(ticket_id)
     }
 }
