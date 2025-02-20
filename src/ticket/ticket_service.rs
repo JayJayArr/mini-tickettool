@@ -5,7 +5,7 @@ use super::{
     status::TicketStatus,
 };
 
-trait TicketService {
+trait TicketRepository {
     async fn get_tickets(&self) -> Vec<Ticket>;
     async fn get_ticket_by_id(&self, ticket_id: &TicketId) -> Option<&Ticket>;
     async fn getmut_ticket_by_id(&mut self, ticket_id: &TicketId) -> Option<&mut Ticket>;
@@ -27,7 +27,7 @@ impl InMemTicketRepository {
     }
 }
 
-impl TicketService for InMemTicketRepository {
+impl TicketRepository for InMemTicketRepository {
     async fn get_tickets(&self) -> Vec<Ticket> {
         self.tickets.values().cloned().collect()
     }

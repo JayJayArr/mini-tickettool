@@ -1,4 +1,10 @@
 pub struct User {
-    user_id: u32,
-    username: String,
+    user_id: UserId,
+    username: Username,
 }
+
+pub struct UserDraft {
+    pub username: Username,
+}
+pub struct UserId(u32);
+pub struct Username(String);
