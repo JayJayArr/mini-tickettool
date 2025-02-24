@@ -7,7 +7,7 @@ use socketioxide::{
     extract::{Data, SocketRef},
 };
 use ticket::{
-    handler::{create_ticket, delete_ticket, get_tickets},
+    handler::{create_ticket, delete_ticket, get_ticket_by_id, get_tickets, update_ticket},
     ticket_service::InMemTicketRepository,
 };
 use tokio::sync::Mutex;
@@ -29,6 +29,8 @@ fn on_connect(socket: SocketRef, Data(data): Data<Value>) {
     socket.on("tickets", get_tickets);
     socket.on("create_ticket", create_ticket);
     socket.on("delete_ticket", delete_ticket);
+    socket.on("get_ticket_by_id", get_ticket_by_id);
+    socket.on("update_ticket", update_ticket);
 }
 
 #[tokio::main]
