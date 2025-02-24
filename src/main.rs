@@ -3,10 +3,13 @@ use std::sync::Arc;
 use axum::routing::get;
 use rmpv::Value;
 use socketioxide::{
-    extract::{Data, SocketRef},
     SocketIo, SocketIoBuilder,
+    extract::{Data, SocketRef, State},
 };
-use ticket::ticket_service::InMemTicketRepository;
+use ticket::{
+    handler::{create_ticket, get_tickets},
+    ticket_service::InMemTicketRepository,
+};
 use tokio::sync::Mutex;
 use tracing::info;
 use tracing_subscriber::FmtSubscriber;
@@ -23,6 +26,15 @@ struct Db {
 fn on_connect(socket: SocketRef, Data(data): Data<Value>) {
     info!(ns = socket.ns(), ?socket.id, "Socket.IO connected");
     socket.emit("auth", &data).ok();
+    // socket.on("tickets", async |socket: SocketRef, state: State<Db>| {
+    //     info!(ns = socket.ns(), ?socket.id, "requets tickets");
+    //     socket.emit(
+    //         "tickets",
+    //         &state.ticketrepo.lock().await.get_tickets().await,
+    //     );
+    // });
+    socket.on("tickets", get_tickets);
+    socket.on("create_ticket", create_ticket);
 }
 
 #[tokio::main]
@@ -37,7 +49,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // let (layer, io) = SocketIo::new_layer();
 
     io.ns("/", on_connect);
-    io.ns("/custom", on_connect);
 
     let app = axum::Router::new()
         .route("/", get(|| async { "Hello, World!" }))

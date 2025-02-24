@@ -5,11 +5,11 @@ use super::{
     status::TicketStatus,
 };
 
-trait TicketRepository {
+pub trait TicketRepository {
     async fn get_tickets(&self) -> Vec<Ticket>;
     async fn get_ticket_by_id(&self, ticket_id: &TicketId) -> Option<&Ticket>;
     async fn getmut_ticket_by_id(&mut self, ticket_id: &TicketId) -> Option<&mut Ticket>;
-    async fn create_ticket(&mut self, create_ticket: TicketDraft) -> Ticket;
+    async fn create_ticket(&mut self, create_ticket: TicketDraft) -> TicketId;
     async fn delete_ticket(&mut self, ticket_id: &TicketId) -> Option<Ticket>;
 }
 
@@ -22,7 +22,7 @@ impl InMemTicketRepository {
     pub fn new() -> Self {
         Self {
             tickets: HashMap::new(),
-            counter: 1,
+            counter: 0,
         }
     }
 }
@@ -31,15 +31,17 @@ impl TicketRepository for InMemTicketRepository {
     async fn get_tickets(&self) -> Vec<Ticket> {
         self.tickets.values().cloned().collect()
     }
-    async fn create_ticket(&mut self, create_ticket: TicketDraft) -> Ticket {
+    async fn create_ticket(&mut self, create_ticket: TicketDraft) -> TicketId {
         self.counter += 1;
+        let id = TicketId(self.counter);
         let ticket = Ticket {
-            ticket_id: TicketId(self.counter),
+            ticket_id: id,
             title: create_ticket.title,
             description: create_ticket.description,
             status: TicketStatus::ToDo,
         };
-        self.tickets.insert(TicketId(self.counter), ticket).unwrap()
+        self.tickets.insert(id, ticket);
+        id
     }
     async fn get_ticket_by_id(&self, ticket_id: &TicketId) -> Option<&Ticket> {
         self.tickets.get(ticket_id)
