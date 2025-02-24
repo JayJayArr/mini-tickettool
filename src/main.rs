@@ -3,11 +3,11 @@ use std::sync::Arc;
 use axum::routing::get;
 use rmpv::Value;
 use socketioxide::{
-    SocketIo, SocketIoBuilder,
-    extract::{Data, SocketRef, State},
+    SocketIoBuilder,
+    extract::{Data, SocketRef},
 };
 use ticket::{
-    handler::{create_ticket, get_tickets},
+    handler::{create_ticket, delete_ticket, get_tickets},
     ticket_service::InMemTicketRepository,
 };
 use tokio::sync::Mutex;
@@ -26,15 +26,9 @@ struct Db {
 fn on_connect(socket: SocketRef, Data(data): Data<Value>) {
     info!(ns = socket.ns(), ?socket.id, "Socket.IO connected");
     socket.emit("auth", &data).ok();
-    // socket.on("tickets", async |socket: SocketRef, state: State<Db>| {
-    //     info!(ns = socket.ns(), ?socket.id, "requets tickets");
-    //     socket.emit(
-    //         "tickets",
-    //         &state.ticketrepo.lock().await.get_tickets().await,
-    //     );
-    // });
     socket.on("tickets", get_tickets);
     socket.on("create_ticket", create_ticket);
+    socket.on("delete_ticket", delete_ticket);
 }
 
 #[tokio::main]
@@ -46,7 +40,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::subscriber::set_global_default(FmtSubscriber::default())?;
 
     let (layer, io) = SocketIoBuilder::new().with_state(db).build_layer();
-    // let (layer, io) = SocketIo::new_layer();
 
     io.ns("/", on_connect);
 

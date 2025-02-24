@@ -1,5 +1,3 @@
-// use crate::user::model::User;
-
 use serde::{Deserialize, Serialize};
 
 use super::status::TicketStatus;
@@ -22,5 +20,10 @@ pub struct TicketTitle(String);
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct TicketDescription(String);
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Debug, Deserialize)]
 pub struct TicketId(pub u32);
+
+#[derive(Clone, Copy, PartialEq, Eq, Serialize, Debug, Deserialize)]
+pub struct TicketIdRequest {
+    pub id: TicketId,
+}
