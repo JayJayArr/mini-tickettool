@@ -10,13 +10,13 @@ trait UserRepository {
     async fn delete_user(&mut self, user_id: &UserId) -> Option<User>;
 }
 
-struct InMemUserRepository {
+pub struct InMemUserRepository {
     users: HashMap<UserId, User>,
     counter: u32,
 }
 
 impl InMemUserRepository {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             users: HashMap::new(),
             counter: 1,

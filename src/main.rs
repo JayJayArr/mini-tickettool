@@ -1,13 +1,24 @@
+use std::sync::Arc;
+
 use axum::routing::get;
 use rmpv::Value;
 use socketioxide::{
     extract::{Data, SocketRef},
     SocketIo, SocketIoBuilder,
 };
+use ticket::ticket_service::InMemTicketRepository;
+use tokio::sync::Mutex;
 use tracing::info;
 use tracing_subscriber::FmtSubscriber;
 mod ticket;
 mod user;
+use user::user_service::InMemUserRepository;
+
+#[derive(Clone)]
+struct Db {
+    ticketrepo: Arc<Mutex<InMemTicketRepository>>,
+    userrepo: Arc<Mutex<InMemUserRepository>>,
+}
 
 fn on_connect(socket: SocketRef, Data(data): Data<Value>) {
     info!(ns = socket.ns(), ?socket.id, "Socket.IO connected");
@@ -16,10 +27,14 @@ fn on_connect(socket: SocketRef, Data(data): Data<Value>) {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let db = Db {
+        ticketrepo: Arc::new(Mutex::new(InMemTicketRepository::new())),
+        userrepo: Arc::new(Mutex::new(InMemUserRepository::new())),
+    };
     tracing::subscriber::set_global_default(FmtSubscriber::default())?;
 
-    // let (layer, io) = SocketIoBuilder::new().with_state();
-    let (layer, io) = SocketIo::new_layer();
+    let (layer, io) = SocketIoBuilder::new().with_state(db).build_layer();
+    // let (layer, io) = SocketIo::new_layer();
 
     io.ns("/", on_connect);
     io.ns("/custom", on_connect);

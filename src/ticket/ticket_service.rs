@@ -19,7 +19,7 @@ pub struct InMemTicketRepository {
 }
 
 impl InMemTicketRepository {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             tickets: HashMap::new(),
             counter: 1,
