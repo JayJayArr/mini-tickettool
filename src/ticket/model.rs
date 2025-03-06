@@ -8,7 +8,7 @@ pub struct Ticket {
     pub title: TicketTitle,
     pub description: TicketDescription,
     pub status: TicketStatus,
-    // assignee: User
+    // assignee: Option<User>,
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TicketDraft {

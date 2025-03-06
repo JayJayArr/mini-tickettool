@@ -33,8 +33,9 @@ fn on_connect(socket: SocketRef, Data(data): Data<Value>) {
     socket.on("update_ticket", update_ticket);
     socket.on_disconnect(on_disconnect);
 }
+
 fn on_disconnect(socket: SocketRef) {
-    info!(ns = socket.ns(), ?socket.id, "Socket.IO connected");
+    info!(ns = socket.ns(), ?socket.id, "Socket.IO disconnected");
 }
 
 #[tokio::main]
