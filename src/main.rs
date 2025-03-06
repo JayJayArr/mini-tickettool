@@ -15,12 +15,12 @@ use tracing::info;
 use tracing_subscriber::FmtSubscriber;
 mod ticket;
 mod user;
-use user::user_service::InMemUserRepository;
+// use user::user_service::InMemUserRepository;
 
 #[derive(Clone)]
 struct Db {
     ticketrepo: Arc<Mutex<InMemTicketRepository>>,
-    userrepo: Arc<Mutex<InMemUserRepository>>,
+    // userrepo: Arc<Mutex<InMemUserRepository>>,
 }
 
 fn on_connect(socket: SocketRef, Data(data): Data<Value>) {
@@ -42,7 +42,7 @@ fn on_disconnect(socket: SocketRef) {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db = Db {
         ticketrepo: Arc::new(Mutex::new(InMemTicketRepository::new())),
-        userrepo: Arc::new(Mutex::new(InMemUserRepository::new())),
+        // userrepo: Arc::new(Mutex::new(InMemUserRepository::new())),
     };
     tracing::subscriber::set_global_default(FmtSubscriber::default())?;
 

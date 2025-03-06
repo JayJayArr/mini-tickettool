@@ -23,19 +23,15 @@ pub async fn create_ticket(
     io: SocketIo,
 ) {
     info!(ns = socket.ns(), ?socket.id, "request new ticket");
-    let _ = &state
-        .ticketrepo
-        .lock()
-        .await
-        .create_ticket(ticketdraft)
-        .await;
+    let ticketrepo = &mut state.ticketrepo.lock().await;
+    let _ = socket.emit("tickets", &ticketrepo.create_ticket(ticketdraft).await);
 
     let _ = io
-        .emit(
-            "tickets",
-            &state.ticketrepo.lock().await.get_tickets().await.sort(),
-        )
-        .await;
+        .emit("tickets", &ticketrepo.get_tickets().await)
+        .await
+        .ok();
+    // io.emit("tickets", &ticketrepo.get_tickets().await.sort())
+    //     .await;
 }
 
 pub async fn delete_ticket(
