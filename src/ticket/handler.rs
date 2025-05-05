@@ -12,7 +12,7 @@ pub async fn get_tickets(socket: SocketRef, state: State<Db>) {
     info!(ns = socket.ns(), ?socket.id, "request tickets");
     let _ = socket.emit(
         "tickets",
-        &state.ticketrepo.lock().await.get_tickets().await.sort(),
+        &state.ticketrepo.lock().await.get_tickets().sort(),
     );
 }
 
@@ -24,12 +24,9 @@ pub async fn create_ticket(
 ) {
     info!(ns = socket.ns(), ?socket.id, "request new ticket");
     let ticketrepo = &mut state.ticketrepo.lock().await;
-    let _ = socket.emit("tickets", &ticketrepo.create_ticket(ticketdraft).await);
+    let _ = socket.emit("tickets", &ticketrepo.create_ticket(ticketdraft));
 
-    let _ = io
-        .emit("tickets", &ticketrepo.get_tickets().await)
-        .await
-        .ok();
+    let _ = io.emit("tickets", &ticketrepo.get_tickets()).await.ok();
     // io.emit("tickets", &ticketrepo.get_tickets().await.sort())
     //     .await;
 }
@@ -42,12 +39,7 @@ pub async fn delete_ticket(
     info!(ns = socket.ns(), ?socket.id, "delete ticket");
     let _ = socket.emit(
         "tickets",
-        &state
-            .ticketrepo
-            .lock()
-            .await
-            .delete_ticket(&ticket_id.id)
-            .await,
+        &state.ticketrepo.lock().await.delete_ticket(&ticket_id.id),
     );
 }
 
@@ -63,8 +55,7 @@ pub async fn get_ticket_by_id(
             .ticketrepo
             .lock()
             .await
-            .get_ticket_by_id(&ticket_id.id)
-            .await,
+            .get_ticket_by_id(&ticket_id.id),
     );
 }
 
@@ -79,7 +70,6 @@ pub async fn update_ticket(
         .lock()
         .await
         .getmut_ticket_by_id(&updatedraft.ticket_id)
-        .await
     {
         Some(ticket) => {
             ticket.description = updatedraft.description;

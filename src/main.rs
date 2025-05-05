@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use axum::routing::get;
+use db::Db;
 use rmpv::Value;
 use socketioxide::{
     SocketIoBuilder,
@@ -13,15 +14,9 @@ use ticket::{
 use tokio::sync::Mutex;
 use tracing::info;
 use tracing_subscriber::FmtSubscriber;
+mod db;
 mod ticket;
 mod user;
-// use user::user_service::InMemUserRepository;
-
-#[derive(Clone)]
-struct Db {
-    ticketrepo: Arc<Mutex<InMemTicketRepository>>,
-    // userrepo: Arc<Mutex<InMemUserRepository>>,
-}
 
 fn on_connect(socket: SocketRef, Data(data): Data<Value>) {
     info!(ns = socket.ns(), ?socket.id, "Socket.IO connected");
@@ -42,7 +37,6 @@ fn on_disconnect(socket: SocketRef) {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db = Db {
         ticketrepo: Arc::new(Mutex::new(InMemTicketRepository::new())),
-        // userrepo: Arc::new(Mutex::new(InMemUserRepository::new())),
     };
     tracing::subscriber::set_global_default(FmtSubscriber::default())?;
 

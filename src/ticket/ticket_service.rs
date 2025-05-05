@@ -6,11 +6,12 @@ use super::{
 };
 
 pub trait TicketRepository {
-    async fn get_tickets(&self) -> Vec<Ticket>;
-    async fn get_ticket_by_id(&self, ticket_id: &TicketId) -> Option<&Ticket>;
-    async fn getmut_ticket_by_id(&mut self, ticket_id: &TicketId) -> Option<&mut Ticket>;
-    async fn create_ticket(&mut self, create_ticket: TicketDraft) -> TicketId;
-    async fn delete_ticket(&mut self, ticket_id: &TicketId) -> Option<Ticket>;
+    fn get_tickets(&self) -> Vec<Ticket>;
+    fn get_ticket_by_id(&self, ticket_id: &TicketId) -> Option<&Ticket>;
+    fn getmut_ticket_by_id(&mut self, ticket_id: &TicketId) -> Option<&mut Ticket>;
+    fn create_ticket(&mut self, create_ticket: TicketDraft) -> TicketId;
+    fn delete_ticket(&mut self, ticket_id: &TicketId) -> Option<Ticket>;
+    fn counter(&mut self) -> u32;
 }
 
 pub struct InMemTicketRepository {
@@ -28,10 +29,10 @@ impl InMemTicketRepository {
 }
 
 impl TicketRepository for InMemTicketRepository {
-    async fn get_tickets(&self) -> Vec<Ticket> {
+    fn get_tickets(&self) -> Vec<Ticket> {
         self.tickets.values().cloned().collect()
     }
-    async fn create_ticket(&mut self, create_ticket: TicketDraft) -> TicketId {
+    fn create_ticket(&mut self, create_ticket: TicketDraft) -> TicketId {
         self.counter += 1;
         let id = TicketId(self.counter);
         let ticket = Ticket {
@@ -43,13 +44,66 @@ impl TicketRepository for InMemTicketRepository {
         self.tickets.insert(id, ticket);
         id
     }
-    async fn get_ticket_by_id(&self, ticket_id: &TicketId) -> Option<&Ticket> {
+    fn get_ticket_by_id(&self, ticket_id: &TicketId) -> Option<&Ticket> {
         self.tickets.get(ticket_id)
     }
-    async fn getmut_ticket_by_id(&mut self, ticket_id: &TicketId) -> Option<&mut Ticket> {
+    fn getmut_ticket_by_id(&mut self, ticket_id: &TicketId) -> Option<&mut Ticket> {
         self.tickets.get_mut(ticket_id)
     }
-    async fn delete_ticket(&mut self, ticket_id: &TicketId) -> Option<Ticket> {
+    fn delete_ticket(&mut self, ticket_id: &TicketId) -> Option<Ticket> {
         self.tickets.remove(ticket_id)
+    }
+
+    fn counter(&mut self) -> u32 {
+        self.counter
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::ticket::{
+        model::{TicketDescription, TicketDraft, TicketId, TicketTitle},
+        ticket_service::TicketRepository,
+    };
+
+    use super::InMemTicketRepository;
+
+    #[test]
+    fn create_ticket() {
+        let ticketdraft = TicketDraft {
+            title: TicketTitle("first ticket".to_string()),
+            description: TicketDescription("first description".to_string()),
+        };
+        let mut repo = InMemTicketRepository::new();
+        assert_eq!(repo.counter(), 0);
+        let id = repo.create_ticket(ticketdraft.clone());
+        assert_eq!(repo.counter(), 1);
+        assert_eq!(repo.get_ticket_by_id(&id).unwrap().title, ticketdraft.title);
+        assert_eq!(
+            repo.get_ticket_by_id(&id).unwrap().description,
+            ticketdraft.description
+        );
+    }
+    #[test]
+    fn non_existing_ticket() {
+        let repo = InMemTicketRepository::new();
+        let result = repo.get_ticket_by_id(&TicketId(1));
+        assert!(result.is_none())
+    }
+
+    #[test]
+    fn delete_ticket() {
+        let mut repo = InMemTicketRepository::new();
+        let ticketdraft = TicketDraft {
+            title: TicketTitle("first ticket".to_string()),
+            description: TicketDescription("first description".to_string()),
+        };
+        assert_eq!(repo.counter(), 0);
+        let id = repo.create_ticket(ticketdraft);
+        assert_eq!(repo.counter(), 1);
+        assert!(repo.get_ticket_by_id(&id).is_some());
+        let result = repo.delete_ticket(&id);
+        assert!(result.is_some());
+        assert!(repo.get_ticket_by_id(&id).is_none());
     }
 }

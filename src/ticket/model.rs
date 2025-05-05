@@ -10,7 +10,7 @@ pub struct Ticket {
     pub status: TicketStatus,
     // assignee: Option<User>,
 }
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TicketDraft {
     pub title: TicketTitle,
     pub description: TicketDescription,
@@ -23,9 +23,9 @@ pub struct TicketUpdateDraft {
     pub description: TicketDescription,
 }
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct TicketTitle(String);
+pub struct TicketTitle(pub String);
 #[derive(Clone, Serialize, Deserialize, Debug, Ord, PartialEq, Eq, PartialOrd)]
-pub struct TicketDescription(String);
+pub struct TicketDescription(pub String);
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Debug, Deserialize, PartialOrd, Ord)]
 pub struct TicketId(pub u32);
