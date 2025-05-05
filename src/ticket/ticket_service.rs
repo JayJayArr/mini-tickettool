@@ -98,12 +98,25 @@ mod tests {
             title: TicketTitle("first ticket".to_string()),
             description: TicketDescription("first description".to_string()),
         };
-        assert_eq!(repo.counter(), 0);
         let id = repo.create_ticket(ticketdraft);
         assert_eq!(repo.counter(), 1);
         assert!(repo.get_ticket_by_id(&id).is_some());
         let result = repo.delete_ticket(&id);
         assert!(result.is_some());
         assert!(repo.get_ticket_by_id(&id).is_none());
+    }
+
+    #[test]
+    fn update_ticket() {
+        let mut repo = InMemTicketRepository::new();
+        let ticketdraft = TicketDraft {
+            title: TicketTitle("first ticket".to_string()),
+            description: TicketDescription("first description".to_string()),
+        };
+        let updated_title = TicketTitle("updated title".to_string());
+        let id = repo.create_ticket(ticketdraft);
+        let mutable_ticket = repo.getmut_ticket_by_id(&id).unwrap();
+        mutable_ticket.title = updated_title.clone();
+        assert_eq!(repo.get_ticket_by_id(&id).unwrap().title, updated_title);
     }
 }

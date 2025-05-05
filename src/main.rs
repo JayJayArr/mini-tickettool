@@ -44,9 +44,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     io.ns("/", on_connect);
 
-    let app = axum::Router::new()
-        .route("/", get(|| async { "Hello, World!" }))
-        .layer(layer);
+    let app = axum::Router::new().layer(layer);
 
     info!("Starting server");
 
