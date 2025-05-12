@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use axum::routing::get;
 use db::Db;
 use rmpv::Value;
 use socketioxide::{
@@ -16,7 +15,7 @@ use tracing::info;
 use tracing_subscriber::FmtSubscriber;
 mod db;
 mod ticket;
-mod user;
+// mod user;
 
 fn on_connect(socket: SocketRef, Data(data): Data<Value>) {
     info!(ns = socket.ns(), ?socket.id, "Socket.IO connected");
