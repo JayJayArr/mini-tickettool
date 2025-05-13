@@ -1,6 +1,10 @@
-use std::sync::Arc;
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 
+use axum::{
+    BoxError, Json, error_handling::HandleErrorLayer, response::IntoResponse, routing::get,
+};
 use db::Db;
+use http::StatusCode;
 use rmpv::Value;
 use socketioxide::{
     SocketIoBuilder,
@@ -11,6 +15,8 @@ use ticket::{
     ticket_service::InMemTicketRepository,
 };
 use tokio::sync::Mutex;
+use tower::{ServiceBuilder, buffer::BufferLayer, limit::RateLimitLayer};
+use tower_http::cors::CorsLayer;
 use tracing::info;
 use tracing_subscriber::FmtSubscriber;
 mod db;
@@ -31,6 +37,9 @@ fn on_connect(socket: SocketRef, Data(data): Data<Value>) {
 fn on_disconnect(socket: SocketRef) {
     info!(ns = socket.ns(), ?socket.id, "Socket.IO disconnected");
 }
+async fn hello_handler() -> impl IntoResponse {
+    Json(42)
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -39,16 +48,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     tracing::subscriber::set_global_default(FmtSubscriber::default())?;
 
-    let (layer, io) = SocketIoBuilder::new().with_state(db).build_layer();
+    let (socketlayer, io) = SocketIoBuilder::new().with_state(db).build_layer();
 
     io.ns("/", on_connect);
 
-    let app = axum::Router::new().layer(layer);
+    let app = axum::Router::new().route("/hello", get(|| async {})).layer(
+        ServiceBuilder::new()
+            .layer(HandleErrorLayer::new(|err: BoxError| async move {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Unhandled error: {}", err),
+                )
+            }))
+            .layer(BufferLayer::new(1024))
+            .layer(RateLimitLayer::new(3, Duration::from_secs(60))),
+    );
 
     info!("Starting server");
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, app.into_make_service()).await?;
 
     Ok(())
 }
