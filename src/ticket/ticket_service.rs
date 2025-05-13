@@ -75,9 +75,7 @@ mod tests {
             description: TicketDescription("first description".to_string()),
         };
         let mut repo = InMemTicketRepository::new();
-        assert_eq!(repo.counter(), 0);
         let id = repo.create_ticket(ticketdraft.clone());
-        assert_eq!(repo.counter(), 1);
         assert_eq!(repo.get_ticket_by_id(&id).unwrap().title, ticketdraft.title);
         assert_eq!(
             repo.get_ticket_by_id(&id).unwrap().description,
@@ -118,5 +116,20 @@ mod tests {
         let mutable_ticket = repo.getmut_ticket_by_id(&id).unwrap();
         mutable_ticket.title = updated_title.clone();
         assert_eq!(repo.get_ticket_by_id(&id).unwrap().title, updated_title);
+    }
+
+    #[test]
+    fn counter() {
+        let mut repo = InMemTicketRepository::new();
+        assert_eq!(repo.counter(), 0);
+        let ticketdraft = TicketDraft {
+            title: TicketTitle("first ticket".to_string()),
+            description: TicketDescription("first description".to_string()),
+        };
+        let _id1 = repo.create_ticket(ticketdraft.clone());
+        assert_eq!(repo.counter(), 1);
+        let _id2 = repo.create_ticket(ticketdraft.clone());
+        let _id3 = repo.create_ticket(ticketdraft.clone());
+        assert_eq!(repo.counter(), 3);
     }
 }

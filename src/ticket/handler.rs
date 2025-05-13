@@ -79,3 +79,10 @@ pub async fn update_ticket(
         None => socket.emit("tickets", "ticket doesn't exist").unwrap(),
     };
 }
+
+pub async fn counter(socket: SocketRef, state: State<Db>) {
+    info!(ns = socket.ns(), ?socket.id, "ticket count");
+    socket
+        .emit("tickets", &state.ticketrepo.lock().await.counter())
+        .unwrap();
+}

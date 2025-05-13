@@ -1,4 +1,4 @@
-use std::{net::SocketAddr, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use axum::{
     BoxError, Json, error_handling::HandleErrorLayer, response::IntoResponse, routing::get,
@@ -11,12 +11,13 @@ use socketioxide::{
     extract::{Data, SocketRef},
 };
 use ticket::{
-    handler::{create_ticket, delete_ticket, get_ticket_by_id, get_tickets, update_ticket},
+    handler::{
+        counter, create_ticket, delete_ticket, get_ticket_by_id, get_tickets, update_ticket,
+    },
     ticket_service::InMemTicketRepository,
 };
 use tokio::sync::Mutex;
 use tower::{ServiceBuilder, buffer::BufferLayer, limit::RateLimitLayer};
-use tower_http::cors::CorsLayer;
 use tracing::info;
 use tracing_subscriber::FmtSubscriber;
 mod db;
@@ -31,6 +32,7 @@ fn on_connect(socket: SocketRef, Data(data): Data<Value>) {
     socket.on("delete_ticket", delete_ticket);
     socket.on("get_ticket_by_id", get_ticket_by_id);
     socket.on("update_ticket", update_ticket);
+    socket.on("counter", counter);
     socket.on_disconnect(on_disconnect);
 }
 
@@ -52,17 +54,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     io.ns("/", on_connect);
 
-    let app = axum::Router::new().route("/hello", get(|| async {})).layer(
-        ServiceBuilder::new()
-            .layer(HandleErrorLayer::new(|err: BoxError| async move {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("Unhandled error: {}", err),
-                )
-            }))
-            .layer(BufferLayer::new(1024))
-            .layer(RateLimitLayer::new(3, Duration::from_secs(60))),
-    );
+    let app = axum::Router::new()
+        .route("/hello", get(hello_handler))
+        .layer(
+            ServiceBuilder::new()
+                .layer(HandleErrorLayer::new(|err: BoxError| async move {
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("Unhandled error: {}", err),
+                    )
+                }))
+                .layer(BufferLayer::new(1024))
+                .layer(RateLimitLayer::new(3, Duration::from_secs(60)))
+                .layer(socketlayer),
+        );
 
     info!("Starting server");
 
