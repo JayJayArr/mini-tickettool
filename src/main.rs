@@ -14,10 +14,13 @@ use ticket::{
     handler::{
         counter, create_ticket, delete_ticket, get_ticket_by_id, get_tickets, update_ticket,
     },
+    model::{Ticket, TicketDescription, TicketId, TicketTitle},
+    status::TicketStatus,
     ticket_service::InMemTicketRepository,
 };
 use tokio::sync::Mutex;
 use tower::{ServiceBuilder, buffer::BufferLayer, limit::RateLimitLayer};
+use tower_http::compression::CompressionLayer;
 use tracing::info;
 use tracing_subscriber::FmtSubscriber;
 mod db;
@@ -40,7 +43,12 @@ fn on_disconnect(socket: SocketRef) {
     info!(ns = socket.ns(), ?socket.id, "Socket.IO disconnected");
 }
 async fn hello_handler() -> impl IntoResponse {
-    Json(42)
+    Json(Ticket {
+        ticket_id: TicketId(42),
+        status: TicketStatus::ToDo,
+        title: TicketTitle("yeet".to_string()),
+        description: TicketDescription("akdkflkjf45fkdjoiujoujweoio".to_string()),
+    })
 }
 
 #[tokio::main]
@@ -66,6 +74,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }))
                 .layer(BufferLayer::new(1024))
                 .layer(RateLimitLayer::new(3, Duration::from_secs(60)))
+                .layer(CompressionLayer::new())
                 .layer(socketlayer),
         );
 
