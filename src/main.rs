@@ -23,9 +23,11 @@ use tower::{ServiceBuilder, buffer::BufferLayer, limit::RateLimitLayer};
 use tower_http::compression::CompressionLayer;
 use tracing::info;
 use tracing_subscriber::FmtSubscriber;
+
+use crate::user::user_service::InMemUserRepository;
 mod db;
 mod ticket;
-// mod user;
+mod user;
 
 fn on_connect(socket: SocketRef, Data(data): Data<Value>) {
     info!(ns = socket.ns(), ?socket.id, "Socket.IO connected");
@@ -55,6 +57,7 @@ async fn hello_handler() -> impl IntoResponse {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let db = Db {
         ticketrepo: Arc::new(Mutex::new(InMemTicketRepository::new())),
+        userrepo: Arc::new(Mutex::new(InMemUserRepository::new())),
     };
     tracing::subscriber::set_global_default(FmtSubscriber::default())?;
 
