@@ -10,7 +10,7 @@ use db::Db;
 use http::StatusCode;
 use rmpv::Value;
 use socketioxide::{
-    SocketIo, SocketIoBuilder,
+    SocketIoBuilder,
     extract::{Data, SocketRef},
 };
 use ticket::{
@@ -76,31 +76,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     tracing::subscriber::set_global_default(FmtSubscriber::default())?;
 
-    // let (socketlayer, io) = SocketIoBuilder::new().with_state(db).build_layer();
-    // let (socketservice, io) = SocketIoBuilder::new().with_state(db).build_svc();
-    let (socketservice, io) = SocketIo::new_svc();
+    let (socketlayer, io) = SocketIoBuilder::new().with_state(db).build_layer();
 
     io.ns("/", on_connect);
 
-    // let httprouter = axum::Router::new().route("/", get(hello_handler));
-    // let iorouter = axum::Router::new().route_service("/", socketservice);
+    let httprouter = axum::Router::new().route("/hello", get(hello_handler));
 
-    let app = axum::Router::new()
-        // .nest("/hello", httprouter)
-        // .nest("/socket.io", iorouter)
-        .route("/", get(|| async {}))
-        .layer(
-            ServiceBuilder::new()
-                .layer(HandleErrorLayer::new(handle_error))
-                .layer(BufferLayer::new(2))
-                .layer(LoadShedLayer::new())
-                .layer(RateLimitLayer::new(1, Duration::from_secs(60))), // .layer(CompressionLayer::new()), // .layer(socketlayer),
-        );
+    let app = axum::Router::new().merge(httprouter).layer(
+        ServiceBuilder::new()
+            .layer(HandleErrorLayer::new(handle_error))
+            .layer(BufferLayer::new(2))
+            .layer(LoadShedLayer::new())
+            .layer(CompressionLayer::new())
+            .layer(RateLimitLayer::new(60, Duration::from_secs(60)))
+            .layer(socketlayer),
+    );
 
     info!("Starting server");
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    axum::serve(listener, app.into_make_service()).await?;
+    axum::serve(listener, app).await?;
 
     Ok(())
 }
