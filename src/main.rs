@@ -1,13 +1,16 @@
 use std::{sync::Arc, time::Duration};
 
 use axum::{
-    BoxError, Json, error_handling::HandleErrorLayer, response::IntoResponse, routing::get,
+    BoxError, Json,
+    error_handling::HandleErrorLayer,
+    response::{IntoResponse, Response},
+    routing::get,
 };
 use db::Db;
 use http::StatusCode;
 use rmpv::Value;
 use socketioxide::{
-    SocketIoBuilder,
+    SocketIo, SocketIoBuilder,
     extract::{Data, SocketRef},
 };
 use ticket::{
@@ -19,7 +22,12 @@ use ticket::{
     ticket_service::InMemTicketRepository,
 };
 use tokio::sync::Mutex;
-use tower::{ServiceBuilder, buffer::BufferLayer, limit::RateLimitLayer};
+use tower::{
+    ServiceBuilder,
+    buffer::BufferLayer,
+    limit::RateLimitLayer,
+    load_shed::{LoadShedLayer, error::Overloaded},
+};
 use tower_http::compression::CompressionLayer;
 use tracing::info;
 use tracing_subscriber::FmtSubscriber;
@@ -52,6 +60,13 @@ async fn hello_handler() -> impl IntoResponse {
         description: TicketDescription("akdkflkjf45fkdjoiujoujweoio".to_string()),
     })
 }
+async fn handle_error(error: BoxError) -> Response {
+    if error.is::<Overloaded>() {
+        (StatusCode::TOO_MANY_REQUESTS, "calm down plzz").into_response()
+    } else {
+        (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong").into_response()
+    }
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -61,24 +76,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     tracing::subscriber::set_global_default(FmtSubscriber::default())?;
 
-    let (socketlayer, io) = SocketIoBuilder::new().with_state(db).build_layer();
+    // let (socketlayer, io) = SocketIoBuilder::new().with_state(db).build_layer();
+    // let (socketservice, io) = SocketIoBuilder::new().with_state(db).build_svc();
+    let (socketservice, io) = SocketIo::new_svc();
 
     io.ns("/", on_connect);
 
+    // let httprouter = axum::Router::new().route("/", get(hello_handler));
+    // let iorouter = axum::Router::new().route_service("/", socketservice);
+
     let app = axum::Router::new()
-        .route("/hello", get(hello_handler))
+        // .nest("/hello", httprouter)
+        // .nest("/socket.io", iorouter)
+        .route("/", get(|| async {}))
         .layer(
             ServiceBuilder::new()
-                .layer(HandleErrorLayer::new(|err: BoxError| async move {
-                    (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("Unhandled error: {}", err),
-                    )
-                }))
-                .layer(BufferLayer::new(1024))
-                .layer(RateLimitLayer::new(3, Duration::from_secs(60)))
-                .layer(CompressionLayer::new())
-                .layer(socketlayer),
+                .layer(HandleErrorLayer::new(handle_error))
+                .layer(BufferLayer::new(2))
+                .layer(LoadShedLayer::new())
+                .layer(RateLimitLayer::new(1, Duration::from_secs(60))), // .layer(CompressionLayer::new()), // .layer(socketlayer),
         );
 
     info!("Starting server");
